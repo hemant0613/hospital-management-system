@@ -1,0 +1,54 @@
+services:
+  postgres-db:
+    image: postgres:17
+    container_name: postgres-db
+    restart: always
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hospital_db
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  patient-service:
+    build: .
+    container_name: patient-service
+    restart: always
+
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - .env
+
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hospital.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+
+    ports:
+      - "5050:80"
+
+volumes:
+  postgres_data:
