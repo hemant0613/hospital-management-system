@@ -1,0 +1,96 @@
+apiVersion: v1
+data:
+  apiToken: ZHQwYzAxLlNHWEVTUEU0QUFOVE1RSUxCVlpKUUFINC5INjJBSkZHRUc2NkxBNExMNlBFTTdPSUNWWE1aNlVIUUdGN0JENzZXSFQ3VDczSVpENUhBNlcyQ0NZWklPNFZX
+  dataIngestToken: ZHQwYzAxLlZHQ1dKWlFNWlpMSkVMV1hCWVY1VERSVC5WVTc3VEZPSFpNQ01ETVY3Q0YyVlBVTlZUMkMyN0Q0QVgzUFEzUEJTQkdFUDdDTlpXRFBBQzNLRUdZUUw0TU5T
+kind: Secret
+metadata:
+  name: docker-desktop
+  namespace: dynatrace
+  labels:
+    dynatrace.com/created-by: "dynatrace.kubernetes"
+type: Opaque
+---
+apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: docker-desktop
+  namespace: dynatrace
+  labels:
+    dynatrace.com/created-by: "dynatrace.kubernetes"
+# Link to api reference for further information: https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters
+spec:
+  apiUrl: https://vrx14519.live.dynatrace.com/api
+  tokens: docker-desktop
+  networkZone: Hemant-Laptop
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        cpu: 400m
+        memory: 2Gi
+    replicas: 1
+  kspm:
+    mappedHostPaths:
+      - /boot
+      - /etc
+      - /proc/sys/kernel
+      - /sys/fs
+      - /sys/kernel/security/apparmor
+      - /usr/lib/systemd/system
+      - /var/lib
+  templates:
+    kspmNodeConfigurationCollector:
+      imageRef:
+        repository: public.ecr.aws/dynatrace/dynatrace-k8s-node-config-collector
+        tag: 1.5.10
+---
+apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: docker-desktop-agents
+  namespace: dynatrace
+  labels:
+    dynatrace.com/created-by: "dynatrace.kubernetes"
+# Link to api reference for further information: https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters
+spec:
+  apiUrl: https://vrx14519.live.dynatrace.com/api
+  tokens: docker-desktop
+  networkZone: Hemant-Laptop
+  oneAgent:
+    cloudNativeFullStack:
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+  activeGate:
+    capabilities:
+      - routing
+      - debugging
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        cpu: 400m
+        memory: 2Gi
+    replicas: 1
+  templates:
+    otelCollector:
+      imageRef:
+        repository: public.ecr.aws/dynatrace/dynatrace-otel-collector
+        tag: latest
+  logMonitoring: {}
+  telemetryIngest:
+    protocols:
+      - jaeger
+      - otlp
+      - statsd
+      - zipkin
+    serviceName: telemetry-ingest
